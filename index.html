@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MAC Caminable</title>
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+      body { background: #e5e5e2; font-family: system-ui, sans-serif; }
+      canvas { display: block; }
+      #start {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: rgb(229 229 226 / 80%);
+        color: #272727;
+        font: inherit;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 2;
+      }
+      #start:disabled { cursor: wait; }
+      #start[hidden] { display: none; }
+      #credits {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        max-width: min(360px, calc(100vw - 40px));
+        color: #333b36;
+        font-size: 12px;
+        line-height: 1.6;
+        z-index: 3;
+      }
+      #credits p { margin: 0 0 6px; }
+      #credits a { color: inherit; text-underline-offset: 2px; }
+      #start[hidden] ~ #credits { display: none; }
+      #help {
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 22px;
+        padding: 12px 16px;
+        border: 1px solid rgb(255 255 255 / 60%);
+        border-radius: 10px;
+        background: rgb(245 245 241 / 92%);
+        color: #333b36;
+        font-size: 12px;
+        line-height: 1.7;
+        pointer-events: none;
+        z-index: 3;
+      }
+      #help span { white-space: nowrap; }
+      kbd { font: 600 11px system-ui, sans-serif; }
+      #minimap {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: clamp(150px, 22vw, 240px);
+        padding: 10px;
+        border: 1px solid rgb(255 255 255 / 70%);
+        border-radius: 12px;
+        background: rgb(245 245 241 / 94%);
+        box-shadow: 0 4px 20px rgb(0 0 0 / 10%);
+        color: #465047;
+        pointer-events: none;
+        z-index: 1;
+      }
+      #minimap[hidden] { display: none; }
+      .map-title { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; }
+      .map-title span:last-child { color: #527563; }
+      .map-view { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 5px; }
+      #map-image { width: 100%; height: 100%; }
+      #map-position {
+        position: absolute;
+        width: 18px;
+        height: 22px;
+        margin: -11px 0 0 -9px;
+        filter: drop-shadow(0 1px 2px rgb(0 0 0 / 45%));
+      }
+      @media (max-width: 600px) {
+        #help { left: 12px; right: 12px; bottom: 12px; gap: 4px 14px; padding: 9px 12px; }
+        #minimap { top: 12px; right: 12px; padding: 8px; }
+      }
+    </style>
+  </head>
+  <body>
+    <button id="start" type="button" disabled>Click to explore</button>
+    <aside id="credits" aria-label="Créditos y atribuciones">
+      <p>Créditos generales — <strong>CHASKI</strong><br />Modelo MAC Quinta — <strong>Antonio Maino</strong></p>
+      <p><a href="https://sketchfab.com/3d-models/juan-carlos-bodoque-91caf07bfb554beeb282fde056383679" target="_blank" rel="noopener noreferrer">Juan Carlos Bodoque — Gn0m0</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a><br />
+        <a href="https://sketchfab.com/3d-models/pudu-8b4c2e3e76524d85a9395ea1169d953e" target="_blank" rel="noopener noreferrer">Pudú — Andres Bonomi</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p>
+      <p>Personajes adaptados con escala y animación.<br /><a href="./models/CREDITS.md" target="_blank" rel="noopener noreferrer">Créditos completos y adaptaciones</a></p>
+    </aside>
+    <aside id="help" aria-label="Controles de navegación">
+      <span><kbd>W A S D</kbd> / <kbd>↑ ↓ ← →</kbd> &nbsp; Moverse</span>
+      <span><strong>Mouse</strong> &nbsp; Cámara</span>
+      <span><kbd>ESC</kbd> &nbsp; Liberar cursor</span>
+    </aside>
+    <aside id="minimap" aria-label="Vista cenital con tu posición y dirección" hidden>
+      <div class="map-title"><span>Vista cenital</span><span>Tu posición ↗</span></div>
+      <div class="map-view">
+        <canvas id="map-image" width="640" height="480"></canvas>
+        <svg id="map-position" viewBox="0 0 18 22" aria-hidden="true">
+          <path d="M9 1 17 20 9 16 1 20Z" fill="#267657" stroke="white" stroke-width="2" stroke-linejoin="round" />
+        </svg>
+      </div>
+    </aside>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "mac-caminable",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "optimize": "node scripts/optimize-obj.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^6.4.0"
+  }
+}
