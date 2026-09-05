@@ -2,6 +2,8 @@
 
 Créditos generales — **CHASKI**
 
+Coded with Codex.
+
 ## Modelo MAC Quinta — Antonio Maino
 
 Modelo arquitectónico de **Antonio Maino**.

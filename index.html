@@ -25,13 +25,33 @@
       #start[hidden] { display: none; }
       #credits {
         position: fixed;
-        top: 20px;
-        left: 20px;
-        max-width: min(360px, calc(100vw - 40px));
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
         color: #333b36;
-        font-size: 12px;
+        font-size: 11px;
         line-height: 1.6;
-        z-index: 3;
+        z-index: 4;
+      }
+      #credits details { position: relative; }
+      #credits summary { cursor: pointer; list-style: none; text-decoration: underline; text-underline-offset: 2px; }
+      #credits summary::-webkit-details-marker { display: none; }
+      .credits-panel {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 0;
+        box-sizing: border-box;
+        width: min(360px, calc(100vw - 40px));
+        max-height: calc(100dvh - 100px);
+        overflow: auto;
+        padding: 16px;
+        border: 1px solid #d9ddd5;
+        border-radius: 10px;
+        background: #f5f5f1;
+        box-shadow: 0 4px 20px rgb(0 0 0 / 10%);
+        font-size: 12px;
       }
       #credits p { margin: 0 0 6px; }
       #credits a { color: inherit; text-underline-offset: 2px; }
@@ -82,19 +102,30 @@
         filter: drop-shadow(0 1px 2px rgb(0 0 0 / 45%));
       }
       @media (max-width: 600px) {
-        #help { left: 12px; right: 12px; bottom: 12px; gap: 4px 14px; padding: 9px 12px; }
+        #help { left: 12px; right: 12px; bottom: 42px; gap: 4px 14px; padding: 9px 12px; }
+        #start[hidden] ~ #help { bottom: 12px; }
+        #credits { bottom: 12px; right: 12px; }
         #minimap { top: 12px; right: 12px; padding: 8px; }
+      }
+      @media (min-width: 601px) and (max-width: 760px) {
+        #credits { bottom: 80px; }
       }
     </style>
   </head>
   <body>
     <button id="start" type="button" disabled>Click to explore</button>
-    <aside id="credits" aria-label="Créditos y atribuciones">
+    <footer id="credits" aria-label="Créditos y atribuciones">
+      <span>Coded with Codex</span>
+      <details>
+        <summary>Créditos</summary>
+        <div class="credits-panel">
       <p>Créditos generales — <strong>CHASKI</strong><br />Modelo MAC Quinta — <strong>Antonio Maino</strong></p>
       <p><a href="https://sketchfab.com/3d-models/juan-carlos-bodoque-91caf07bfb554beeb282fde056383679" target="_blank" rel="noopener noreferrer">Juan Carlos Bodoque — Gn0m0</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a><br />
         <a href="https://sketchfab.com/3d-models/pudu-8b4c2e3e76524d85a9395ea1169d953e" target="_blank" rel="noopener noreferrer">Pudú — Andres Bonomi</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></p>
       <p>Personajes adaptados con escala y animación.<br /><a href="./models/CREDITS.md" target="_blank" rel="noopener noreferrer">Créditos completos y adaptaciones</a></p>
-    </aside>
+        </div>
+      </details>
+    </footer>
     <aside id="help" aria-label="Controles de navegación">
       <span><kbd>W A S D</kbd> / <kbd>↑ ↓ ← →</kbd> &nbsp; Moverse</span>
       <span><strong>Mouse</strong> &nbsp; Cámara</span>
