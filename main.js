@@ -10,6 +10,7 @@ import { loadCharacter } from './character.js';
 import { createGroundSampler } from './grounding.js';
 import { createForest } from './forest.js';
 import { createWildlife } from './wildlife.js';
+import { createTouchControls } from './touch-controls.js';
 
 // Ajustes: distancias en metros, velocidad en metros por segundo.
 const MOVE_SPEED = 3;
@@ -27,6 +28,8 @@ const SHOULDER_OFFSET = 0.3;
 const TREE_SPACING = 12; // Metros; aumentar para un bosque más despejado.
 const PUDU_HEIGHT = 0.65;
 const INDOOR_PUDUS = 6;
+const MOBILE_DEVICE = matchMedia('(pointer: coarse)').matches;
+const pixelRatioLimit = MOBILE_DEVICE ? 1 : MAX_PIXEL_RATIO;
 
 const modelPath = `${import.meta.env.BASE_URL}models/`;
 const start = document.querySelector('#start');
@@ -36,8 +39,8 @@ scene.background = new THREE.Color(0xe5e5e2);
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 1000);
 camera.position.y = CAMERA_HEIGHT;
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, MAX_PIXEL_RATIO));
+const renderer = new THREE.WebGLRenderer({ antialias: !MOBILE_DEVICE });
+renderer.setPixelRatio(Math.min(devicePixelRatio, pixelRatioLimit));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
@@ -53,6 +56,13 @@ const controls = new PointerLockControls(camera, renderer.domElement);
 // Impide invertir la vista; el movimiento siempre permanece en el plano X/Z.
 controls.minPolarAngle = Math.PI * 0.2;
 controls.maxPolarAngle = Math.PI * 0.75;
+const touch = createTouchControls(camera, renderer.domElement, controls.minPolarAngle, controls.maxPolarAngle);
+let touchMode = MOBILE_DEVICE || !renderer.domElement.requestPointerLock;
+function updateInputHint() {
+  document.body.classList.toggle('touch-mode', touchMode);
+  start.textContent = touchMode ? 'Toca para explorar' : 'Click to explore';
+}
+updateInputHint();
 
 const keys = new Set();
 const velocity = new THREE.Vector2();
@@ -74,21 +84,42 @@ const followPosition = new THREE.Vector3();
 const up = new THREE.Vector3(0, 1, 0);
 
 function stopMoving() {
+  touch.reset();
   keys.clear();
   velocity.set(0, 0);
   movement.set(0, 0, 0);
 }
 
-start.addEventListener('click', () => controls.lock());
+start.addEventListener('pointerdown', (event) => {
+  touchMode = event.pointerType !== 'mouse' || !renderer.domElement.requestPointerLock;
+  updateInputHint();
+});
+start.addEventListener('click', () => {
+  if (touchMode) {
+    stopMoving();
+    touch.setActive(true);
+    start.hidden = true;
+  } else {
+    controls.lock();
+  }
+});
 controls.addEventListener('lock', () => { start.hidden = true; });
 controls.addEventListener('unlock', () => {
   start.hidden = false;
   stopMoving();
 });
-window.addEventListener('blur', stopMoving);
-document.addEventListener('visibilitychange', stopMoving);
+function pause() {
+  touch.setActive(false);
+  stopMoving();
+  start.hidden = false;
+  if (controls.isLocked) controls.unlock();
+}
+document.querySelector('#pause').addEventListener('click', pause);
+window.addEventListener('blur', pause);
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 document.addEventListener('keydown', (event) => {
-  if (controls.isLocked && movementKeys.has(event.code)) {
+  if (event.code === 'Escape' && touch.active) pause();
+  if ((controls.isLocked || touch.active) && movementKeys.has(event.code)) {
     event.preventDefault();
     keys.add(event.code);
   }
@@ -164,7 +195,7 @@ async function loadBuilding() {
   camera.updateProjectionMatrix();
   ceilingLights = createCeilingLights(scene, building, bounds, CAMERA_HEIGHT, CEILING_LIGHT_STRENGTH);
   ceilingLights.update(camera);
-  exterior = createExterior(scene, camera, renderer, sun, bounds, SUN_SHADOW_SIZE);
+  exterior = createExterior(scene, camera, renderer, sun, bounds, MOBILE_DEVICE ? 1024 : SUN_SHADOW_SIZE);
   exterior.update(camera);
   // Hornear la sombra con los materiales reales antes del render del minimapa.
   renderer.render(scene, camera);
@@ -200,11 +231,11 @@ renderer.setAnimationLoop((time) => {
   previousTime = time;
 
   movement.set(0, 0, 0);
-  if (controls.isLocked && character) {
+  if ((controls.isLocked || touch.active) && character) {
     direction.set(
       Number(keys.has('KeyD') || keys.has('ArrowRight')) - Number(keys.has('KeyA') || keys.has('ArrowLeft')),
       Number(keys.has('KeyW') || keys.has('ArrowUp')) - Number(keys.has('KeyS') || keys.has('ArrowDown')),
-    ).normalize().multiplyScalar(MOVE_SPEED);
+    ).add(touch.movement).clampLength(0, 1).multiplyScalar(MOVE_SPEED);
     velocity.lerp(direction, 1 - Math.exp(-MOVEMENT_SMOOTHING * delta));
     camera.getWorldDirection(forward);
     forward.y = 0;
@@ -240,8 +271,9 @@ renderer.setAnimationLoop((time) => {
 });
 
 window.addEventListener('resize', () => {
+  stopMoving();
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setPixelRatio(Math.min(devicePixelRatio, MAX_PIXEL_RATIO));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, pixelRatioLimit));
   renderer.setSize(innerWidth, innerHeight);
 });
