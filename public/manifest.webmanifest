@@ -1,0 +1,9 @@
+{
+  "name": "MAC Caminable",
+  "short_name": "MAC Quinta",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e5e5e2",
+  "theme_color": "#e5e5e2"
+}

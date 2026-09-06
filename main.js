@@ -11,6 +11,7 @@ import { createGroundSampler } from './grounding.js';
 import { createForest } from './forest.js';
 import { createWildlife } from './wildlife.js';
 import { createTouchControls } from './touch-controls.js';
+import { createLoadingScreen, downloadOBJ } from './loading.js';
 
 // Ajustes: distancias en metros, velocidad en metros por segundo.
 const MOVE_SPEED = 3;
@@ -33,6 +34,9 @@ const pixelRatioLimit = MOBILE_DEVICE ? 1 : MAX_PIXEL_RATIO;
 
 const modelPath = `${import.meta.env.BASE_URL}models/`;
 const start = document.querySelector('#start');
+const loading = createLoadingScreen();
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+document.querySelector('#ios-tip').hidden = !isIOS || navigator.standalone || matchMedia('(display-mode: standalone)').matches || document.fullscreenEnabled;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xe5e5e2);
 
@@ -60,7 +64,7 @@ const touch = createTouchControls(camera, renderer.domElement, controls.minPolar
 let touchMode = MOBILE_DEVICE || !renderer.domElement.requestPointerLock;
 function updateInputHint() {
   document.body.classList.toggle('touch-mode', touchMode);
-  start.textContent = touchMode ? 'Toca para explorar' : 'Click to explore';
+  if (!start.disabled) start.textContent = touchMode ? 'Toca para explorar' : 'Click to explore';
 }
 updateInputHint();
 
@@ -96,6 +100,9 @@ start.addEventListener('pointerdown', (event) => {
 });
 start.addEventListener('click', () => {
   if (touchMode) {
+    if (document.fullscreenEnabled && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
     stopMoving();
     touch.setActive(true);
     start.hidden = true;
@@ -127,14 +134,19 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('keyup', (event) => keys.delete(event.code));
 
 async function loadBuilding() {
-  const loader = new OBJLoader();
+  const manager = new THREE.LoadingManager();
+  let texturesReady = Promise.resolve();
+  let texturesDone;
+  manager.onStart = () => { texturesReady = new Promise((resolve) => { texturesDone = resolve; }); };
+  manager.onLoad = () => texturesDone?.();
+  const loader = new OBJLoader(manager);
   try {
     const response = await fetch(`${modelPath}building.mtl`);
     if (response.ok) {
       const source = await response.text();
       // Un MTL ausente puede devolver el HTML de Vite en lugar de un 404.
       if (/^\s*newmtl\s+/m.test(source)) {
-        const materials = new MTLLoader().parse(source, modelPath);
+        const materials = new MTLLoader(manager).parse(source, modelPath);
         materials.preload();
         loader.setMaterials(materials);
       }
@@ -143,9 +155,9 @@ async function loadBuilding() {
     console.warn('No se pudo cargar building.mtl; se usarán materiales simples.', error);
   }
 
-  const response = await fetch(`${modelPath}building.obj`);
-  if (!response.ok) throw new Error(`building.obj: HTTP ${response.status}`);
-  const building = loader.parse(prepareOBJ(await response.text()));
+  const source = await downloadOBJ(`${modelPath}building.obj`, loading.download, import.meta.env.PROD);
+  await loading.stage('Preparando geometría del museo…');
+  const building = loader.parse(prepareOBJ(source));
   building.scale.setScalar(OBJ_SCALE);
   building.rotation.x = OBJ_ROTATION_X;
 
@@ -185,6 +197,7 @@ async function loadBuilding() {
     }
   });
   scene.add(building);
+  await loading.stage('Preparando iluminación y plano…');
 
   bounds.setFromObject(building);
   const size = bounds.getSize(new THREE.Vector3());
@@ -201,6 +214,7 @@ async function loadBuilding() {
   renderer.render(scene, camera);
   minimap = createMinimap(renderer, scene, bounds, CAMERA_HEIGHT);
   sampleGround = createGroundSampler(building);
+  await loading.stage('Cargando Bodoque, pudúes y bosque…');
   forest = createForest(scene, bounds, scene.fog.far, TREE_SPACING);
   forest.update(camera.position);
   [character, wildlife] = await Promise.all([
@@ -217,12 +231,17 @@ async function loadBuilding() {
   camera.position.set(initial.x + SHOULDER_OFFSET, groundHeight + CAMERA_HEIGHT, initial.z + FOLLOW_DISTANCE);
   camera.lookAt(initial.x + SHOULDER_OFFSET, groundHeight + 1.2, initial.z);
   minimap.update(camera, character.player.position);
+  await loading.stage('Terminando texturas…');
+  await texturesReady;
   start.disabled = false;
+  updateInputHint();
+  loading.finish();
 }
 
 loadBuilding().catch((error) => {
   console.error('No se pudo cargar el museo o el personaje:', error);
   start.textContent = 'No se pudo cargar el museo o sus personajes';
+  loading.fail();
 });
 
 let previousTime = performance.now();
@@ -270,10 +289,15 @@ renderer.setAnimationLoop((time) => {
   renderer.render(scene, camera);
 });
 
-window.addEventListener('resize', () => {
+function resizeViewport() {
   stopMoving();
-  camera.aspect = innerWidth / innerHeight;
+  const { width, height } = document.body.getBoundingClientRect();
+  camera.aspect = width / Math.max(1, height);
   camera.updateProjectionMatrix();
   renderer.setPixelRatio(Math.min(devicePixelRatio, pixelRatioLimit));
-  renderer.setSize(innerWidth, innerHeight);
-});
+  renderer.setSize(width, height, false);
+}
+window.addEventListener('resize', resizeViewport);
+window.visualViewport?.addEventListener('resize', resizeViewport);
+document.addEventListener('fullscreenchange', resizeViewport);
+resizeViewport();

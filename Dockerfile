@@ -6,6 +6,7 @@ RUN npm ci
 
 COPY index.html *.js ./
 COPY models ./models
+COPY public ./public
 RUN npm run build
 
 # Servir únicamente la salida de Vite, que ya incluye Three.js y los modelos.

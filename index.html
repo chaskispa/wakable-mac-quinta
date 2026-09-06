@@ -3,18 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#e5e5e2" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MAC Quinta" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <title>MAC Caminable</title>
     <style>
       html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
       body { background: #e5e5e2; font-family: system-ui, sans-serif; }
       canvas { display: block; }
-      body > canvas { touch-action: none; }
+      body { position: fixed; inset: 0; height: 100%; height: 100dvh; }
+      body > canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; touch-action: none; }
+      #loading { position: absolute; z-index: 3; top: calc(50% + 44px); left: 50%; transform: translateX(-50%); width: min(280px, 75vw); text-align: center; color: #333b36; font-size: 13px; pointer-events: none; }
+      #loading[hidden], #ios-tip[hidden] { display: none; }
+      #load-progress { width: 100%; height: 8px; accent-color: #527563; }
+      #load-status { display: block; margin-top: 10px; }
+      #ios-tip { white-space: normal !important; }
+
       body { overscroll-behavior: none; }
       .touch-help { display: none; }
       .touch-mode #help .desktop-help { display: none; }
       .touch-mode #help .touch-help { display: inline; }
       .touch-mode #start[hidden] ~ #help { display: none; }
-      #touch-controls { position: fixed; inset: 0; pointer-events: none; z-index: 3; user-select: none; -webkit-user-select: none; }
+      #touch-controls { position: absolute; inset: 0; pointer-events: none; z-index: 3; user-select: none; -webkit-user-select: none; }
       #touch-controls[hidden] { display: none; }
       #pause {
         position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left));
@@ -23,7 +35,7 @@
         pointer-events: auto; touch-action: manipulation;
       }
       #move-stick {
-        position: absolute; left: max(24px, env(safe-area-inset-left)); bottom: max(32px, env(safe-area-inset-bottom));
+        position: absolute; left: max(24px, env(safe-area-inset-left)); bottom: calc(32px + env(safe-area-inset-bottom));
         width: 128px; height: 128px; box-sizing: border-box; border: 2px solid #ffffff88;
         border-radius: 50%; background: #333b3626; pointer-events: auto; touch-action: none;
         -webkit-touch-callout: none;
@@ -42,7 +54,7 @@
         #move-stick { width: 112px; height: 112px; }
       }
       #start {
-        position: fixed;
+        position: absolute;
         inset: 0;
         width: 100%;
         height: 100%;
@@ -57,7 +69,7 @@
       #start:disabled { cursor: wait; }
       #start[hidden] { display: none; }
       #credits {
-        position: fixed;
+        position: absolute;
         bottom: 20px;
         right: 20px;
         display: flex;
@@ -90,7 +102,7 @@
       #credits a { color: inherit; text-underline-offset: 2px; }
       #start[hidden] ~ #credits { display: none; }
       #help {
-        position: fixed;
+        position: absolute;
         left: 20px;
         bottom: 20px;
         display: flex;
@@ -109,7 +121,7 @@
       #help span { white-space: nowrap; }
       kbd { font: 600 11px system-ui, sans-serif; }
       #minimap {
-        position: fixed;
+        position: absolute;
         top: 20px;
         right: 20px;
         width: clamp(150px, 22vw, 240px);
@@ -146,7 +158,11 @@
     </style>
   </head>
   <body>
-    <button id="start" type="button" disabled>Click to explore</button>
+    <button id="start" type="button" disabled>Cargando museo…</button>
+    <div id="loading" role="status" aria-live="polite">
+      <progress id="load-progress" aria-label="Descarga del museo"></progress>
+      <span id="load-status">Preparando descarga…</span>
+    </div>
     <footer id="credits" aria-label="Créditos y atribuciones">
       <details>
         <summary>Créditos</summary>
@@ -164,6 +180,7 @@
       <span class="desktop-help"><strong>Mouse</strong> &nbsp; Cámara</span>
       <span class="desktop-help"><kbd>ESC</kbd> &nbsp; Liberar cursor</span>
       <span class="touch-help">Joystick: moverse · Desliza la pantalla: mirar</span>
+      <span id="ios-tip" hidden>iPhone: Compartir → Añadir a pantalla de inicio para abrir sin las barras de Safari.</span>
     </aside>
     <div id="touch-controls" hidden>
       <button id="pause" type="button" aria-label="Pausar exploración">Pausa</button>
